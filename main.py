@@ -33,7 +33,7 @@ class TradingBot:
         self.current_order = None
 
     def fetch_balance(self):
-        self.balance = self.exchange.fetch_balance()['total']
+        self.balance = self.exchange.fetch_balance()['total']['USDT']
 
     def fetch_ohlcv(self):
         return self.exchange.fetch_ohlcv(self.symbol, '1m')
@@ -42,11 +42,11 @@ class TradingBot:
         return pd.DataFrame(data).loc[:,4].rolling(window).mean()
 
     def place_order(self, side, amount):
-        order_info = self.exchange.create_order(self.symbol, 'market', side, amount, {'leverage': 10})
-        self.current_order = order_info['id']
+        #order_info = self.exchange.create_order(self.symbol, 'market', side, amount, {'leverage': 10})
+        self.current_order = 1 #order_info['id']
 
     def cancel_order(self, order_id):
-        self.exchange.cancel_order(order_id, self.symbol)
+        self.current_order = 1 #self.exchange.cancel_order(order_id, self.symbol)
 
     def update(self):
         self.fetch_balance()
@@ -54,26 +54,25 @@ class TradingBot:
         sma_9 = self.calculate_sma(ohlcv, 9)
         sma_20 = self.calculate_sma(ohlcv, 20)
         # Check for buy signal
-        if sma_9.iat[-3] < sma_20.iat[-3] and sma_9.iat[-2] > sma_20.iat[-2] and self.current_order is None:
-            self.place_order('buy', self.balance * 0.01)
-            print('Compramos')
+        time = pd.to_datetime(ohlcv[len(ohlcv)-1][0], unit='ms')
 
-        # Check for sell signal
-        elif sma_9.iat[-3] > sma_20.iat[-3] and sma_9.iat[-2] < sma_20.iat[-2] and self.current_order is not None:
-            self.cancel_order(self.current_order)
-            self.current_order = None
-            print('Cerrar operación compra')
+        if sma_9.iat[-3] < sma_20.iat[-3] and sma_9.iat[-2] > sma_20.iat[-2]:
+            if self.current_order is not None:
+                self.cancel_order(self.current_order)
+                print('Cerrar operación compra en vela: ' + str(time))
+
+            self.place_order('buy', self.balance * 0.01)
+            print('Compramos en vela: ' + str(time))
 
         # Check for short signal
-        elif sma_9.iat[-3] > sma_20.iat[-3] and sma_9.iat[-2] < sma_20.iat[-2] and self.current_order is None:
-            self.place_order('sell', self.balance * 0.01)
-            print('Vendemos')
+        elif sma_9.iat[-3] > sma_20.iat[-3] and sma_9.iat[-2] < sma_20.iat[-2]:
+            if self.current_order is not None:
+                self.cancel_order(self.current_order)
+                print('Cerrar operación venta en vela: ' + str(time))
 
-        # Check for exit short signal
-        elif sma_9.iat[-3] < sma_20.iat[-3] and sma_9.iat[-2] > sma_20.iat[-2] and self.current_order is not None:
-            self.cancel_order(self.current_order)
-            self.current_order = None
-            print('Cerrar operación compra')
+            self.place_order('sell', self.balance * 0.01)
+            print('Vendemos en vela: ' + str(time))
+
 
 bot = TradingBot(api_key,secret_key,passphrase)
 current_time = 0
@@ -85,3 +84,5 @@ while True:
         bot.update()
         last_time = current_time
         time.sleep(10)
+    else:
+        time.sleep(2)

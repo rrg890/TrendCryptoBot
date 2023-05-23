@@ -36,7 +36,7 @@ class TradingBot:
         self.balance = self.exchange.fetch_balance()['total']['USDT']
 
     def fetch_ohlcv(self):
-        return self.exchange.fetch_ohlcv(self.symbol, '1m')
+        return self.exchange.fetch_ohlcv(self.symbol, '5m')
 
     def calculate_sma(self, data, window):
         return pd.DataFrame(data).loc[:,4].rolling(window).mean()
@@ -55,11 +55,17 @@ class TradingBot:
         sma_20 = self.calculate_sma(ohlcv, 20)
         # Check for buy signal
         time = pd.to_datetime(ohlcv[len(ohlcv)-1][0], unit='ms')
+        print("--------------------------")
+        print("Time: "+ str(time))
+        print("Vela 3 de 9 perídodos: " + str(sma_9.iat[-3]))
+        print("Vela 3 de 20 perídodos: " + str(sma_20.iat[-3]))
+        print("Vela 2 de 9 perídodos: " + str(sma_9.iat[-2]))
+        print("Vela 2 de 20 perídodos: " + str(sma_20.iat[-2]))
 
         if sma_9.iat[-3] < sma_20.iat[-3] and sma_9.iat[-2] > sma_20.iat[-2]:
             if self.current_order is not None:
                 self.cancel_order(self.current_order)
-                print('Cerrar operación compra en vela: ' + str(time))
+                print('Cerrar operación venta en vela: ' + str(time))
 
             self.place_order('buy', self.balance * 0.01)
             print('Compramos en vela: ' + str(time))
@@ -68,7 +74,7 @@ class TradingBot:
         elif sma_9.iat[-3] > sma_20.iat[-3] and sma_9.iat[-2] < sma_20.iat[-2]:
             if self.current_order is not None:
                 self.cancel_order(self.current_order)
-                print('Cerrar operación venta en vela: ' + str(time))
+                print('Cerrar operación compra en vela: ' + str(time))
 
             self.place_order('sell', self.balance * 0.01)
             print('Vendemos en vela: ' + str(time))

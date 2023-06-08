@@ -5,11 +5,11 @@
 
 flag = "1"  # 0:live trading  1: demo trading
 
-api_key = "5bc09a62-ada3-4e02-b69e-83da969915ff"
-secret_key = "33FCE1313BC8BE3CA9CE5361F0768774"
+api_key = "a7e765a8-5687-47b7-a72a-fc9fe036fbff"
+secret_key = "07FEA49A36124D2BEF1D340D3326FBD9"
 passphrase = "oleoleolE4."
 
-ticker = "BTC-USDT-230526"
+ticker = "BTC-USDT-230609"
 
 
 #df = pd.DataFrame(data_candles["data"],columns=["Timestamp","Open","High","Low","Close","Volume","Quantity","QuantityQuote","Confirm"])
@@ -49,7 +49,7 @@ class TradingBot:
         self.current_order = 1 #self.exchange.cancel_order(order_id, self.symbol)
 
     def update(self):
-        self.fetch_balance()
+        #self.fetch_balance()
         ohlcv = self.fetch_ohlcv()
         sma_9 = self.calculate_sma(ohlcv, 9)
         sma_20 = self.calculate_sma(ohlcv, 20)

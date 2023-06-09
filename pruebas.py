@@ -21,6 +21,7 @@ import pandas as pd
 import okx.Account as Account
 import okx.MarketData as MarketData
 import okx.Trade as Trade
+import okx.Funding as Funding
 import time
 last_time = 0
 ms = 0
@@ -48,15 +49,16 @@ elif (timeframe=='1W'):
 
 class TradingBot:
     def __init__(self, api_key, secret_key, pass_phrase):
-        self.accountAPI = Account.AccountAPI(api_key, secret_key, pass_phrase, False, flag,)
-        self.tradeAPI = Trade.TradeAPI(api_key, secret_key, passphrase, False, flag)
+        self.accountAPI = Account.AccountAPI(api_key, secret_key, pass_phrase, False, flag,debug=False)
+        self.tradeAPI = Trade.TradeAPI(api_key, secret_key, passphrase, False, flag,debug=False)
         self.marketdataAPI = MarketData.MarketAPI(api_key, secret_key, pass_phrase,False,flag=flag,debug=False)
         self.symbol = ticker
         self.balance = None
         self.current_order = None
 
     def fetch_balance(self):
-        self.balance = self.accountAPI.get_account_balance()
+        self.balance = pd.DataFrame(self.accountAPI.get_account_balance()['data'][0]['details'])
+        self.balance = self.balance.loc[self.balance['ccy']=='USDT']['availBal'][0]
         return self.balance
 
     def fetch_last_price(self):
@@ -119,17 +121,5 @@ class TradingBot:
 
 
 bot = TradingBot(api_key,secret_key,passphrase)
-current_time = 0
-ohlcv = 0
+print(bot.fetch_balance())
 
-while True:
-    ohlcv = bot.fetch_ohlcv()
-    current_time = ohlcv['Open Timestamp'][0]
-    #print("Current "+str(current_time))
-    #print("Last " + str(last_time))
-    if current_time>last_time:
-        bot.update(ohlcv)
-        last_time = current_time
-        time.sleep(10)
-    else:
-        time.sleep(2)

@@ -139,7 +139,5 @@ class TradingBot:
 
 
 bot = TradingBot(api_key,secret_key,passphrase)
-bot.place_order('buy')
-time.sleep(2)
-bot.cancel_order()
+print(bot.fetch_balance())
 

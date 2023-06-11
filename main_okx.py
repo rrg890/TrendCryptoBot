@@ -1,7 +1,10 @@
-# This is a sample Python script.
+#
+# This is developed by @hobbiecode
 
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
+# Links are
+# Instagram:    https://www.instagram.com/hobbiecode/
+# Youtube:      https://www.youtube.com/c/hobbiecode
+# TikTok:       https://www.tiktok.com/@hobbiecode
 
 flag = "0"  # 0:live trading  1: demo trading
 
@@ -9,8 +12,10 @@ api_key = "a7e765a8-5687-47b7-a72a-fc9fe036fbff"
 secret_key = "07FEA49A36124D2BEF1D340D3326FBD9"
 passphrase = "oleoleolE4."
 
-ticker = 'BTC-USDT-230616'
+ticker = 'BTC-USDT-SWAP'
 timeframe = '1m' #[1m/3m/5m/15m/30m/1H/2H/4H]
+leverage = 10
+risk = 0.01
 
 
 #df = pd.DataFrame(data_candles["data"],columns=["Timestamp","Open","High","Low","Close","Volume","Quantity","QuantityQuote","Confirm"])
@@ -21,9 +26,11 @@ import pandas as pd
 import okx.Account as Account
 import okx.MarketData as MarketData
 import okx.Trade as Trade
+import okx.Funding as Funding
 import time
 last_time = 0
 ms = 0
+
 
 if (timeframe=='1m'):
     ms = 60000
@@ -48,15 +55,17 @@ elif (timeframe=='1W'):
 
 class TradingBot:
     def __init__(self, api_key, secret_key, pass_phrase):
-        self.accountAPI = Account.AccountAPI(api_key, secret_key, pass_phrase, False, flag,)
-        self.tradeAPI = Trade.TradeAPI(api_key, secret_key, passphrase, False, flag)
+        self.accountAPI = Account.AccountAPI(api_key, secret_key, pass_phrase, False, flag,debug=False)
+        self.tradeAPI = Trade.TradeAPI(api_key, secret_key, passphrase, False, flag,debug=False)
         self.marketdataAPI = MarketData.MarketAPI(api_key, secret_key, pass_phrase,False,flag=flag,debug=False)
         self.symbol = ticker
         self.balance = None
+        self.max_contracts = None
         self.current_order = None
 
     def fetch_balance(self):
-        self.balance = self.accountAPI.get_account_balance()
+        self.balance = pd.DataFrame(self.accountAPI.get_account_balance()['data'][0]['details'])
+        self.balance = self.balance.loc[self.balance['ccy']=='USDT']['availBal'][0]
         return self.balance
 
     def fetch_last_price(self):
@@ -78,15 +87,23 @@ class TradingBot:
     def calculate_sma(self, data, window):
         return data.rolling(window).mean()
 
-    def place_order(self, side, amount):
-        #order_info = self.exchange.create_order(self.symbol, 'market', side, amount, {'leverage': 10})
-        self.current_order = 1 #order_info['id']
+    def place_order(self, side):
+        self.max_contracts = self.accountAPI.get_max_order_size(instId=self.symbol, tdMode='isolated')['data'][0]['maxBuy']
+        self.accountAPI.set_leverage(instId=self.symbol, lever=leverage, mgnMode='isolated')
+        rou = round(float(self.max_contracts) * risk)
+        qty = 1
+        if rou >= 1:
+            qty = rou
+        self.current_order = self.tradeAPI.place_order(instId=self.symbol,tdMode='isolated',ccy='USDT',side=side,ordType='market',sz=qty,reduceOnly=False)
+        if (int(self.current_order['code'])==0):
+            print("Order " + side + " correctly placed "+ str(self.symbol))
 
     def cancel_order(self, order_id):
-        self.current_order = 1 #self.exchange.cancel_order(order_id, self.symbol)
+        self.tradeAPI.cancel_order(instId=self.symbol,ordId=self.current_order['ordId'])
+        self.current_order = 0
 
     def update(self,ohlcv):
-        #self.fetch_balance()
+        self.fetch_balance()
         #ohlcv = self.fetch_ohlcv()
         sma_9 = self.calculate_sma(ohlcv['Close'], 9)
         sma_20 = self.calculate_sma(ohlcv['Close'], 20)
@@ -105,7 +122,7 @@ class TradingBot:
                 self.cancel_order(self.current_order)
                 print('Cerrar operación venta en vela: ' + str(time))
 
-            self.place_order('buy', 0.01)
+            self.place_order('buy')
             print('Compramos en vela: ' + str(time))
 
         # Check for short signal
@@ -114,7 +131,7 @@ class TradingBot:
                 self.cancel_order(self.current_order)
                 print('Cerrar operación compra en vela: ' + str(time))
 
-            self.place_order('sell', 0.01)
+            self.place_order('sell')
             print('Vendemos en vela: ' + str(time))
 
 

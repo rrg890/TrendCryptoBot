@@ -10,7 +10,7 @@
 ################## PARÁMETROS ##########################
 ########################################################
 
-ticker = 'LTC-USDT-SWAP'    # Activo a operar, hay que poner el que aparece en la URL cuando lo abres en OKX
+ticker = 'CFX-USDT-SWAP'    # Activo a operar, hay que poner el que aparece en la URL cuando lo abres en OKX
 timeframe = '5m'            # [1m/3m/5m/15m/30m/1H/2H/4H/D1/W1]
 leverage = 10               # Apalancamiento
 risk = 0.01                 # Riesgo por operación. Ejemplo: si está en 0.01 significa que abrirá una operación de X contratos, dónde X representa el 1% de los contratos máximos que puedes abrir en dicho activo
@@ -139,5 +139,9 @@ class TradingBot:
 
 
 bot = TradingBot(api_key,secret_key,passphrase)
-print(bot.fetch_balance())
+print(bot.tradeAPI.get_fills(instId=bot.symbol))
+if len(bot.tradeAPI.get_fills(instId=bot.symbol)['data'])>0:
+    print("Trading ongoing...")
+else:
+    print("Trading clear...")
 

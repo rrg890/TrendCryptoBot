@@ -10,7 +10,7 @@
 ################## PARÁMETROS ##########################
 ########################################################
 
-ticker = 'LTC-USDT-SWAP'    # Activo a operar, hay que poner el que aparece en la URL cuando lo abres en OKX
+ticker = 'BTC-USDT-SWAP'    # Activo a operar, hay que poner el que aparece en la URL cuando lo abres en OKX
 timeframe = '5m'            # [1m/3m/5m/15m/30m/1H/2H/4H/D1/W1]
 leverage = 10               # Apalancamiento
 risk = 0.01                 # Riesgo por operación. Ejemplo: si está en 0.01 significa que abrirá una operación de X contratos, dónde X representa el 1% de los contratos máximos que puedes abrir en dicho activo
@@ -52,6 +52,12 @@ class TradingBot:
         self.balance = None
         self.max_contracts = None
         self.current_order = None
+        if len(self.tradeAPI.get_fills(instId=self.symbol)['data']) > 0:
+            self.current_order = self.tradeAPI.get_fills(instId=self.symbol)['data'][0]['ordId']
+            print("Operación con ID " + self.current_order + " detectada")
+        else:
+            print("No hay operaciones abiertas")
+
 
     # Get the balance availabe in your account
     def fetch_balance(self):
@@ -99,7 +105,10 @@ class TradingBot:
 
     # Close positions
     def cancel_order(self):
-        self.tradeAPI.close_positions(instId=self.symbol,mgnMode='isolated')
+        try:
+            self.tradeAPI.close_positions(instId=self.symbol, mgnMode='isolated')
+        except:
+            print("No order to close.")
         #self.tradeAPI.cancel_order(instId=self.symbol,ordId=self.current_order['data'][0]['ordId'])
         self.current_order = 0
 
@@ -143,7 +152,11 @@ current_time = 0
 ohlcv = 0
 
 while True:
-    ohlcv = bot.fetch_ohlcv()
+    try:
+        ohlcv = bot.fetch_ohlcv()
+    except:
+        print("Connection error. Retrying...")
+
     current_time = ohlcv['Open Timestamp'][0]
 
     # Check only once per candle, at closed
